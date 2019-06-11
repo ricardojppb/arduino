@@ -15,6 +15,12 @@
 #define pUltrasonicoEsquerda_trigger 26
 #define pUltrasonicoEsquerda_echo 27
 
+#define pSendor1 7
+#define pSendor2 8
+#define pSendor3 9
+#define pSendor4 10
+#define pSendor5 11 
+
 //Inicializa o sensor nos pinos definidos acima
 Ultrasonic ultrasonicoCentral(pUltrasonicoCentral_trigger, pUltrasonicoCentral_echo);
 Ultrasonic ultrasonicoDireita(pUltrasonicoDireita_trigger, pUltrasonicoDireita_echo);
@@ -23,7 +29,7 @@ Ultrasonic ultrasonicoEsquerda(pUltrasonicoEsquerda_trigger, pUltrasonicoEsquerd
 //Definindo a classe para controlar os motores
 MotorDriver m;
 
-int SENSORA7, SENSORA8, SENSORA9, SENSORA10, SENSORA11;
+int SENSORA1, SENSORA2, SENSORA3, SENSORA4, SENSORA5;
 
 const float distMinCentral = 35.0;
 const float distMaxLateral = 25.0;
@@ -44,22 +50,22 @@ void setup() {
 
 void loop() {
 
-  SENSORA7 = analogRead(7);
-  SENSORA8 = analogRead(8);
-  SENSORA9 = analogRead(9);
-  SENSORA10 = analogRead(10);
-  SENSORA11 = analogRead(11);
+  SENSORA1 = analogRead(pSendor1);
+  SENSORA2 = analogRead(pSendor2);
+  SENSORA3 = analogRead(pSendor3);
+  SENSORA4 = analogRead(pSendor4);
+  SENSORA5 = analogRead(pSendor5);
 
   Serial.print("Sensor A7: ");
-  Serial.println(SENSORA7);
+  Serial.println(SENSORA1);
   Serial.print("Sensor A8: ");
-  Serial.println(SENSORA8);
+  Serial.println(SENSORA2);
   Serial.print("Sensor A9: ");
-  Serial.println(SENSORA9);
+  Serial.println(SENSORA3);
   Serial.print("Sensor A10: ");
-  Serial.println(SENSORA10);
+  Serial.println(SENSORA4);
   Serial.print("Sensor A11: ");
-  Serial.println(SENSORA11);
+  Serial.println(SENSORA5);
   Serial.println("===================================================");
 
 
