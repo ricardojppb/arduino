@@ -19,7 +19,7 @@
 #define pSendor2 8
 #define pSendor3 9
 #define pSendor4 10
-#define pSendor5 11 
+#define pSendor5 11
 
 //Inicializa o sensor nos pinos definidos acima
 Ultrasonic ultrasonicoCentral(pUltrasonicoCentral_trigger, pUltrasonicoCentral_echo);
@@ -112,141 +112,149 @@ void autonomo() {
   if (cmMsecCentral >= distMinCentral) {
 
     Serial.println("Movendo para frente!");
-    move_frente(velocidadeMax);
+    frente(velocidadeMax);
 
     if (cmMsecDireita <= distMinLateral) {
 
       Serial.println("Parede proxima  - Movendo para esquerda!");
-      //regular_centralizacao_esquerda(velocidadeMax);
-      move_roda_esqueda_frente(velocidadeMedia, 60);
+      esqueda(velocidadeMedia, 60);
 
     } else if (cmMsecEsquerda <= distMinLateral) {
 
       Serial.println("Parede proxima  - Movendo para direita!");
-      //regular_centralizacao_direita(velocidadeMax);
-       move_roda_direita_frente(velocidadeMedia, 60);
+      direita(velocidadeMedia, 60);
 
     }
 
   } else if (cmMsecDireita >= distMaxLateral) {
 
     Serial.println("Movendo para direita!");
-    move_roda_direita_frente(velocidadeMax, 45);
-    //regular_centralizacao_direita(velocidadeMax);
+    direita(velocidadeMax, 45);
 
   } else if (cmMsecEsquerda >= distMaxLateral) {
 
     Serial.println("Movendo para esquerda!");
-    move_roda_esqueda_frente(velocidadeMax, 45);
-    //regular_centralizacao_esquerda(velocidadeMax);
+    esqueda(velocidadeMax, 45);
 
   } else {
 
     Serial.println("Movendo para traz!");
-    move_traz(velocidadeMedia);
-    
+    traz(velocidadeMedia);
+
   }
 
   //delay(1000);
 }
 
-void regular_centralizacao_esquerda(int velocidade) {
+//void regular_centralizacao_esquerda(int velocidade) {
+//
+//  parar();
+//  //  m.motor(motor_esquerdo, FORWARD, 0);
+//  //  m.motor(motor_direito, BACKWARD, 0);
+//  //
+//  //  delay(50);
+//
+//  for (int i = velocidade; i > velocidadeMin; i--) {
+//
+//    m.motor(motor_esquerdo, FORWARD, i);
+//    if (i <= velocidadeMedia) {
+//      m.motor(motor_direito, BACKWARD, i);
+//    }
+//
+//  }
+//
+//}
+//
+//void regular_centralizacao_direita(int velocidade) {
+//
+//  parar();
+//  //  m.motor(motor_direito, BACKWARD, 0);
+//  //  m.motor(motor_esquerdo, FORWARD, 0);
+//  //
+//  //  delay(50);
+//
+//  for (int i = velocidade; i > velocidadeMin; i--) {
+//
+//    m.motor(motor_direito, BACKWARD, i);
+//    if (i <= velocidadeMedia) {
+//      m.motor(motor_esquerdo, FORWARD, i);
+//    }
+//
+//  }
+//}
 
-  m.motor(motor_esquerdo, FORWARD, 0);
-  m.motor(motor_direito, BACKWARD, 0);
+void direita(int velocidade, int tempo) {
 
-  delay(50);
+  parar();
+  //  m.motor(motor_direito, BACKWARD, 0);
+  //  m.motor(motor_esquerdo, FORWARD, 0);
+  //
+  //  delay(tempo);
 
   for (int i = velocidade; i > velocidadeMin; i--) {
-
-    m.motor(motor_esquerdo, FORWARD, i);
-    if (i <= velocidadeMedia) {
-      m.motor(motor_direito, BACKWARD, i);
-    }
-
-  }
-
-}
-
-void regular_centralizacao_direita(int velocidade) {
-
-  m.motor(motor_direito, BACKWARD, 0);
-  m.motor(motor_esquerdo, FORWARD, 0);
-
-  delay(50);
-
-  for (int i = velocidade; i > velocidadeMin; i--) {
-
     m.motor(motor_direito, BACKWARD, i);
-    if (i <= velocidadeMedia) {
-      m.motor(motor_esquerdo, FORWARD, i);
-    }
-
-  }
-}
-
-void move_roda_direita_frente(int velocidade, int tempo) {
-
-  m.motor(motor_direito, BACKWARD, 0);
-  m.motor(motor_esquerdo, FORWARD, 0);
-
-  delay(tempo);
-
-  for (int i = velocidade; i > velocidadeMin; i--) {
-    m.motor(motor_direito, BACKWARD, i);
-  }
-
-   delay(tempo);
-}
-
-void move_roda_esqueda_frente(int velocidade, int tempo) {
-
-  m.motor(motor_esquerdo, FORWARD, 0);
-  m.motor(motor_direito, BACKWARD, 0);
-
-  delay(tempo);
-
-  for (int i = velocidade; i > velocidadeMin; i--) {
-    m.motor(motor_esquerdo, FORWARD, i);
-  }
-
-  delay(tempo);
-}
-
-void move_roda_direita_traz(int velocidade) {
-
-  m.motor(motor_esquerdo, BACKWARD, 0);
-  m.motor(motor_direito, FORWARD, 0);
-
-  delay(50);
-
-  for (int i = velocidade; i > velocidadeMin; i--) {
-    m.motor(motor_direito, FORWARD, i);
-  }
-  
-   delay(50);
-
-}
-
-void move_roda_esqueda_traz(int velocidade) {
-
-  m.motor(motor_direito, FORWARD, 0);
-  m.motor(motor_esquerdo, BACKWARD, 0);
-
-  delay(50);
-
-  for (int i = velocidade; i > velocidadeMin; i--) {
     m.motor(motor_esquerdo, BACKWARD, i);
   }
 
-   delay(50);
-
+  delay(tempo);
 }
 
-void move_frente(int velocidade) {
+void esqueda(int velocidade, int tempo) {
+
+  parar();
+  //  m.motor(motor_esquerdo, FORWARD, 0);
+  //  m.motor(motor_direito, BACKWARD, 0);
+  //
+  //  delay(tempo);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
+    m.motor(motor_esquerdo, FORWARD, i);
+    m.motor(motor_direito, FORWARD, i);
+  }
+
+  delay(tempo);
+}
+
+//void move_direita_traz(int velocidade) {
+//
+//  //m.motor(motor_esquerdo, BACKWARD, 0);
+//  //m.motor(motor_direito, FORWARD, 0);
+//
+//  parar();
+//
+//  //delay(50);
+//
+//  for (int i = velocidade; i > velocidadeMin; i--) {
+//    m.motor(motor_direito, FORWARD, i);
+//    m.motor(motor_esquerdo, FORWARD, i);
+//  }
+//
+//  delay(50);
+//
+//}
+
+//void move_esqueda_traz(int velocidade) {
+//
+//  //m.motor(motor_direito, FORWARD, 0);
+//  //m.motor(motor_esquerdo, BACKWARD, 0);
+//
+//  parar();
+//
+//  //delay(50);
+//
+//  for (int i = velocidade; i > velocidadeMin; i--) {
+//    m.motor(motor_direito, BACKWARD, i);
+//    m.motor(motor_esquerdo, BACKWARD, i);
+//  }
+//
+//  delay(50);
+//
+//}
+
+void frente(int velocidade) {
 
   delay(20);
-  
+
   for (int i = velocidade; i > velocidadeMin; i--) {
 
     m.motor(motor_direito, BACKWARD, i);
@@ -255,19 +263,26 @@ void move_frente(int velocidade) {
   }
 
   delay(10);
-  
+
 }
 
-void move_traz(int velocidade) {
-  
+void traz(int velocidade) {
+
   delay(20);
-  
+
   for (int i = velocidade; i > velocidadeMin; i--) {
 
     m.motor(motor_direito, FORWARD, i);
     m.motor(motor_esquerdo, BACKWARD, i);
 
   }
-  
+
   delay(10);
+}
+
+void parar() {
+
+  m.motor(motor_direito, BRAKE, 0);
+  m.motor(motor_esquerdo, BRAKE, 0);
+  delay(100);
 }
