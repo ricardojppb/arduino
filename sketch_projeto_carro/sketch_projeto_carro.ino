@@ -23,6 +23,18 @@ Ultrasonic ultrasonicoEsquerda(pUltrasonicoEsquerda_trigger, pUltrasonicoEsquerd
 //Definindo a classe para controlar os motores
 MotorDriver m;
 
+int SENSORA7, SENSORA8, SENSORA9, SENSORA10, SENSORA11;
+
+const float distMinCentral = 35.0;
+const float distMaxLateral = 25.0;
+const float distMinLateral = 5.0;
+
+
+
+const int velocidadeMax = 255;
+const int velocidadeMedia = 125;
+const int velocidadeMin = 70;
+
 void setup() {
 
   Serial.begin(9600);
@@ -31,6 +43,31 @@ void setup() {
 }
 
 void loop() {
+
+  SENSORA7 = analogRead(7);
+  SENSORA8 = analogRead(8);
+  SENSORA9 = analogRead(9);
+  SENSORA10 = analogRead(10);
+  SENSORA11 = analogRead(11);
+
+  Serial.print("Sensor A7: ");
+  Serial.println(SENSORA7);
+  Serial.print("Sensor A8: ");
+  Serial.println(SENSORA8);
+  Serial.print("Sensor A9: ");
+  Serial.println(SENSORA9);
+  Serial.print("Sensor A10: ");
+  Serial.println(SENSORA10);
+  Serial.print("Sensor A11: ");
+  Serial.println(SENSORA11);
+  Serial.println("===================================================");
+
+
+  autonomo();
+
+}
+
+void autonomo() {
 
   //Le as informacoes do sensor, em cm e pol
   float cmMsecCentral, inMsecCentral, cmMsecDireita,
@@ -41,74 +78,190 @@ void loop() {
   long microsecEsquerda = ultrasonicoEsquerda.timing();
 
   //Lendo em centimetros
-  cmMsecCentral = ultrasonicoCentral.convert(microsecCentral, Ultrasonic::CM);
-  //Lendo em polegadas
-  //inMsecCentral = ultrasonicoCentral.convert(microsecCentral, Ultrasonic::IN);
-
-  //Lendo em centimetros
   cmMsecDireita = ultrasonicoDireita.convert(microsecDireita, Ultrasonic::CM);
   //Lendo em polegadas
   //inMsecDireita = ultrasonicoDireita.convert(microsecDireita, Ultrasonic::IN);
+
+  //Lendo em centimetros
+  cmMsecCentral = ultrasonicoCentral.convert(microsecCentral, Ultrasonic::CM);
+  //Lendo em polegadas
+  //inMsecCentral = ultrasonicoCentral.convert(microsecCentral, Ultrasonic::IN);
 
   //Lendo em centimetros
   cmMsecEsquerda = ultrasonicoEsquerda.convert(microsecEsquerda, Ultrasonic::CM);
   //Lendo em polegadas
   //inMsecEsquerda = ultrasonicoEsquerda.convert(microsecEsquerda, Ultrasonic::IN);
 
-  Serial.print("Distancia Central em cm: ");
-  Serial.println(cmMsecCentral);
+
   Serial.print("Distancia Direita em cm: ");
   Serial.println(cmMsecDireita);
+  Serial.print("Distancia Central em cm: ");
+  Serial.println(cmMsecCentral);
+
   Serial.print("Distancia Esquerda em cm: ");
   Serial.println(cmMsecEsquerda);
-  delay(1000);
+  Serial.println("===================================================");
 
 
-}
+  if (cmMsecCentral >= distMinCentral) {
 
-void move_roda_direita_frente() {
+    Serial.println("Movendo para frente!");
+    move_frente(velocidadeMax);
 
-  for (int i = 0; i < 255; i++) {
-    m.motor(motor_direito, FORWARD, i);
-    // m.motor(motor_esquerdo, FORWARD, i);
-    delay(10);
+    if (cmMsecDireita <= distMinLateral) {
+
+      Serial.println("Parede proxima  - Movendo para esquerda!");
+      //regular_centralizacao_esquerda(velocidadeMax);
+      move_roda_esqueda_frente(velocidadeMedia, 60);
+
+    } else if (cmMsecEsquerda <= distMinLateral) {
+
+      Serial.println("Parede proxima  - Movendo para direita!");
+      //regular_centralizacao_direita(velocidadeMax);
+       move_roda_direita_frente(velocidadeMedia, 60);
+
+    }
+
+  } else if (cmMsecDireita >= distMaxLateral) {
+
+    Serial.println("Movendo para direita!");
+    move_roda_direita_frente(velocidadeMax, 45);
+    //regular_centralizacao_direita(velocidadeMax);
+
+  } else if (cmMsecEsquerda >= distMaxLateral) {
+
+    Serial.println("Movendo para esquerda!");
+    move_roda_esqueda_frente(velocidadeMax, 45);
+    //regular_centralizacao_esquerda(velocidadeMax);
+
+  } else {
+
+    Serial.println("Movendo para traz!");
+    move_traz(velocidadeMedia);
+    
   }
+
+  //delay(1000);
 }
 
-void move_roda_esqueda_frente() {
+void regular_centralizacao_esquerda(int velocidade) {
 
-  for (int i = 0; i < 255; i++) {
-    // m.motor(motor_direito, FORWARD, i);
+  m.motor(motor_esquerdo, FORWARD, 0);
+  m.motor(motor_direito, BACKWARD, 0);
+
+  delay(50);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
+
     m.motor(motor_esquerdo, FORWARD, i);
-    delay(10);
+    if (i <= velocidadeMedia) {
+      m.motor(motor_direito, BACKWARD, i);
+    }
+
   }
+
 }
 
-void move_roda_direita_traz() {
+void regular_centralizacao_direita(int velocidade) {
 
-  for (int i = 0; i < 255; i++) {
+  m.motor(motor_direito, BACKWARD, 0);
+  m.motor(motor_esquerdo, FORWARD, 0);
+
+  delay(50);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
+
     m.motor(motor_direito, BACKWARD, i);
-    //m.motor(motor_esquerdo, BACKWARD, i);
-    delay(10);
+    if (i <= velocidadeMedia) {
+      m.motor(motor_esquerdo, FORWARD, i);
+    }
+
   }
 }
 
-void move_roda_esqueda_traz() {
+void move_roda_direita_frente(int velocidade, int tempo) {
 
-  for (int i = 0; i < 255; i++) {
-    //m.motor(motor_direito, FORWARD, i);
+  m.motor(motor_direito, BACKWARD, 0);
+  m.motor(motor_esquerdo, FORWARD, 0);
+
+  delay(tempo);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
+    m.motor(motor_direito, BACKWARD, i);
+  }
+
+   delay(tempo);
+}
+
+void move_roda_esqueda_frente(int velocidade, int tempo) {
+
+  m.motor(motor_esquerdo, FORWARD, 0);
+  m.motor(motor_direito, BACKWARD, 0);
+
+  delay(tempo);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
+    m.motor(motor_esquerdo, FORWARD, i);
+  }
+
+  delay(tempo);
+}
+
+void move_roda_direita_traz(int velocidade) {
+
+  m.motor(motor_esquerdo, BACKWARD, 0);
+  m.motor(motor_direito, FORWARD, 0);
+
+  delay(50);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
+    m.motor(motor_direito, FORWARD, i);
+  }
+  
+   delay(50);
+
+}
+
+void move_roda_esqueda_traz(int velocidade) {
+
+  m.motor(motor_direito, FORWARD, 0);
+  m.motor(motor_esquerdo, BACKWARD, 0);
+
+  delay(50);
+
+  for (int i = velocidade; i > velocidadeMin; i--) {
     m.motor(motor_esquerdo, BACKWARD, i);
-    delay(10);
   }
+
+   delay(50);
+
 }
 
-void move_frente() {
-  move_roda_direita_frente();
-  move_roda_esqueda_frente();
+void move_frente(int velocidade) {
+
+  delay(20);
+  
+  for (int i = velocidade; i > velocidadeMin; i--) {
+
+    m.motor(motor_direito, BACKWARD, i);
+    m.motor(motor_esquerdo, FORWARD, i);
+
+  }
+
+  delay(10);
+  
 }
 
+void move_traz(int velocidade) {
+  
+  delay(20);
+  
+  for (int i = velocidade; i > velocidadeMin; i--) {
 
-void move_traz() {
-  move_roda_direita_traz();
-  move_roda_esqueda_traz();
+    m.motor(motor_direito, FORWARD, i);
+    m.motor(motor_esquerdo, BACKWARD, i);
+
+  }
+  
+  delay(10);
 }
