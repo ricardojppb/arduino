@@ -31,21 +31,44 @@ MotorDriver m;
 
 int SENSORA1, SENSORA2, SENSORA3, SENSORA4, SENSORA5;
 
-const float distMinCentral = 35.0;
+const float distMinCentral = 15.0;
 const float distMaxLateral = 25.0;
-const float distMinLateral = 5.0;
-
-
+const float distMinLateral = 3.0;
 
 const int velocidadeMax = 255;
-const int velocidadeMedia = 125;
-const int velocidadeMin = 70;
+const int velocidadeMedia = 200;
+const int velocidadeMin = 100;
+
+float cmMsecCentral, inMsecCentral, cmMsecDireita,
+      inMsecDireita, cmMsecEsquerda, inMsecEsquerda;
+
+long microsecCentral, microsecDireita, microsecEsquerda;
+
+int carregando = 5;
 
 void setup() {
 
   Serial.begin(9600);
   Serial.println("Lendo dados do sensor...");
+  Serial.println("Carregando");
+  
+  for (int i = 0; i < carregando; i++) {
+    
+    Serial.print(".");
 
+    SENSORA2 = analogRead(pSendor1);
+    SENSORA2 = analogRead(pSendor2);
+    SENSORA3 = analogRead(pSendor3);
+    SENSORA4 = analogRead(pSendor4);
+    SENSORA5 = analogRead(pSendor5);
+
+    microsecCentral = ultrasonicoCentral.timing();
+    microsecDireita = ultrasonicoDireita.timing();
+    microsecEsquerda = ultrasonicoEsquerda.timing();
+
+    delay(1000);
+
+  }
 }
 
 void loop() {
@@ -56,17 +79,17 @@ void loop() {
   SENSORA4 = analogRead(pSendor4);
   SENSORA5 = analogRead(pSendor5);
 
-  Serial.print("Sensor A7: ");
-  Serial.println(SENSORA1);
-  Serial.print("Sensor A8: ");
-  Serial.println(SENSORA2);
-  Serial.print("Sensor A9: ");
-  Serial.println(SENSORA3);
-  Serial.print("Sensor A10: ");
-  Serial.println(SENSORA4);
-  Serial.print("Sensor A11: ");
-  Serial.println(SENSORA5);
-  Serial.println("===================================================");
+  //  Serial.print("Sensor A7: ");
+  //  Serial.println(SENSORA1);
+  //  Serial.print("Sensor A8: ");
+  //  Serial.println(SENSORA2);
+  //  Serial.print("Sensor A9: ");
+  //  Serial.println(SENSORA3);
+  //  Serial.print("Sensor A10: ");
+  //  Serial.println(SENSORA4);
+  //  Serial.print("Sensor A11: ");
+  //  Serial.println(SENSORA5);
+  //  Serial.println("===================================================");
 
 
   autonomo();
@@ -75,13 +98,9 @@ void loop() {
 
 void autonomo() {
 
-  //Le as informacoes do sensor, em cm e pol
-  float cmMsecCentral, inMsecCentral, cmMsecDireita,
-        inMsecDireita, cmMsecEsquerda, inMsecEsquerda;
-
-  long microsecCentral = ultrasonicoCentral.timing();
-  long microsecDireita = ultrasonicoDireita.timing();
-  long microsecEsquerda = ultrasonicoEsquerda.timing();
+  microsecCentral = ultrasonicoCentral.timing();
+  microsecDireita = ultrasonicoDireita.timing();
+  microsecEsquerda = ultrasonicoEsquerda.timing();
 
   //Lendo em centimetros
   cmMsecDireita = ultrasonicoDireita.convert(microsecDireita, Ultrasonic::CM);
@@ -108,40 +127,78 @@ void autonomo() {
   Serial.println(cmMsecEsquerda);
   Serial.println("===================================================");
 
-
-  if (cmMsecCentral >= distMinCentral) {
-
-    Serial.println("Movendo para frente!");
-    frente(velocidadeMax);
-
-    if (cmMsecDireita <= distMinLateral) {
-
-      Serial.println("Parede proxima  - Movendo para esquerda!");
-      esqueda(velocidadeMedia, 60);
-
-    } else if (cmMsecEsquerda <= distMinLateral) {
-
-      Serial.println("Parede proxima  - Movendo para direita!");
-      direita(velocidadeMedia, 60);
-
+  
+    if (cmMsecCentral >= distMinCentral) {
+  
+      Serial.println("Movendo para frente!");
+      frente(velocidadeMedia);
+  
+      if (cmMsecDireita <= distMinLateral) {
+  
+        Serial.println("Parede proxima  - Movendo para esquerda!");
+        //esqueda(velocidadeMax, 20);
+  
+      } else if (cmMsecEsquerda <= distMinLateral) {
+  
+        Serial.println("Parede proxima  - Movendo para direita!");
+        //direita(velocidadeMax, 20);
+  
+      }
+  
+    } else if (cmMsecDireita >= distMaxLateral) {
+  
+      Serial.println("Movendo para direita!");
+      traz(velocidadeMin);
+      direita(velocidadeMedia, 350);
+  
+    } else if (cmMsecEsquerda >= distMaxLateral) {
+  
+      Serial.println("Movendo para esquerda!");
+      traz(velocidadeMin);
+      esqueda(velocidadeMedia, 350);
+  
+    } else {
+  
+      Serial.println("Movendo para traz!");
+      traz(velocidadeMax);
+  
     }
 
-  } else if (cmMsecDireita >= distMaxLateral) {
-
-    Serial.println("Movendo para direita!");
-    direita(velocidadeMax, 45);
-
-  } else if (cmMsecEsquerda >= distMaxLateral) {
-
-    Serial.println("Movendo para esquerda!");
-    esqueda(velocidadeMax, 45);
-
-  } else {
-
-    Serial.println("Movendo para traz!");
-    traz(velocidadeMedia);
-
-  }
+//  if (cmMsecCentral >= distMinCentral) {
+//
+//    Serial.println("Movendo para frente!");
+//    frente(velocidadeMedia);
+//
+//    //    if (cmMsecDireita <= distMinLateral) {
+//    //
+//    //      Serial.println("Parede proxima  - Movendo para esquerda!");
+//    //      //esqueda(velocidadeMax, 20);
+//    //
+//    //    } else if (cmMsecEsquerda <= distMinLateral) {
+//    //
+//    //      Serial.println("Parede proxima  - Movendo para direita!");
+//    //      //direita(velocidadeMax, 20);
+//    //
+//    //    }
+//
+//  } else if (cmMsecDireita > cmMsecEsquerda) {
+//
+//    Serial.println("Movendo para direita!");
+//    traz(velocidadeMin);
+//    direita(velocidadeMedia, 350);
+//
+//  } else if (cmMsecEsquerda > cmMsecDireita) {
+//
+//    Serial.println("Movendo para esquerda!");
+//    traz(velocidadeMin);
+//    esqueda(velocidadeMedia, 350);
+//
+//  } else {
+//
+//    Serial.println("Movendo para traz!");
+//    traz(velocidadeMax);
+//
+//  }
 
   //delay(1000);
 }
@@ -185,32 +242,32 @@ void autonomo() {
 
 void direita(int velocidade, int tempo) {
 
-  parar();
-  //  m.motor(motor_direito, BACKWARD, 0);
-  //  m.motor(motor_esquerdo, FORWARD, 0);
+  //parar(tempo);
+  m.motor(motor_direito, BACKWARD, velocidade);
+  m.motor(motor_esquerdo, BACKWARD, velocidade);
   //
   //  delay(tempo);
 
-  for (int i = velocidade; i > velocidadeMin; i--) {
-    m.motor(motor_direito, BACKWARD, i);
-    m.motor(motor_esquerdo, BACKWARD, i);
-  }
+  //  for (int i = velocidade; i > velocidadeMin; i--) {
+  //    m.motor(motor_direito, BACKWARD, i);
+  //    m.motor(motor_esquerdo, BACKWARD, i);
+  //  }
 
   delay(tempo);
 }
 
 void esqueda(int velocidade, int tempo) {
 
-  parar();
-  //  m.motor(motor_esquerdo, FORWARD, 0);
-  //  m.motor(motor_direito, BACKWARD, 0);
+  //parar(tempo);
+  m.motor(motor_esquerdo, FORWARD, velocidade);
+  m.motor(motor_direito, FORWARD, velocidade);
   //
   //  delay(tempo);
 
-  for (int i = velocidade; i > velocidadeMin; i--) {
-    m.motor(motor_esquerdo, FORWARD, i);
-    m.motor(motor_direito, FORWARD, i);
-  }
+  //  for (int i = velocidade; i > velocidadeMin; i--) {
+  //    m.motor(motor_esquerdo, FORWARD, i);
+  //    m.motor(motor_direito, FORWARD, i);
+  //  }
 
   delay(tempo);
 }
@@ -253,12 +310,13 @@ void esqueda(int velocidade, int tempo) {
 
 void frente(int velocidade) {
 
-  delay(20);
-
+  //delay(20);
+  //parar(50);
   for (int i = velocidade; i > velocidadeMin; i--) {
 
-    m.motor(motor_direito, BACKWARD, i);
     m.motor(motor_esquerdo, FORWARD, i);
+    m.motor(motor_direito, BACKWARD, i);
+
 
   }
 
@@ -268,8 +326,9 @@ void frente(int velocidade) {
 
 void traz(int velocidade) {
 
-  delay(20);
+  //delay(20);
 
+  parar(50);
   for (int i = velocidade; i > velocidadeMin; i--) {
 
     m.motor(motor_direito, FORWARD, i);
@@ -280,9 +339,9 @@ void traz(int velocidade) {
   delay(10);
 }
 
-void parar() {
+void parar(int tempo) {
 
   m.motor(motor_direito, BRAKE, 0);
   m.motor(motor_esquerdo, BRAKE, 0);
-  delay(100);
+  delay(tempo);
 }
