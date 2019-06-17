@@ -1,19 +1,22 @@
 #include <MotorDriver.h>
-#include <Ultrasonic.h>
+#include <BlynkSimpleSerialBLE.h>
+#include  <NewPing.h>
+
+#define BLYNK_PRINT Serial
 
 //Define os motores da sheild
 #define motor_direito 1
 #define motor_esquerdo 4
 
 //Define os pinos para o trigger e echo
-#define pUltrasonicoCentral_trigger 22
-#define pUltrasonicoCentral_echo 23
+#define pSC_t 22
+#define pSC_e 23
 
-#define pUltrasonicoDireita_trigger 24
-#define pUltrasonicoDireita_echo 25
+#define pSD_t 24
+#define pSD_e 25
 
-#define pUltrasonicoEsquerda_trigger 26
-#define pUltrasonicoEsquerda_echo 27
+#define pSE_t 26
+#define pSE_e 27
 
 #define pSendor1 7
 #define pSendor2 8
@@ -21,13 +24,17 @@
 #define pSendor4 10
 #define pSendor5 11
 
+#define MAX_DISTANCE 200
 //Inicializa o sensor nos pinos definidos acima
-Ultrasonic ultrasonicoCentral(pUltrasonicoCentral_trigger, pUltrasonicoCentral_echo);
-Ultrasonic ultrasonicoDireita(pUltrasonicoDireita_trigger, pUltrasonicoDireita_echo);
-Ultrasonic ultrasonicoEsquerda(pUltrasonicoEsquerda_trigger, pUltrasonicoEsquerda_echo);
+NewPing sonar_c(pSC_t, pSC_e, MAX_DISTANCE);
+NewPing sonar_d(pSD_t, pSD_e, MAX_DISTANCE);
+NewPing sonar_e(pSE_t, pSE_e, MAX_DISTANCE);
 
 //Definindo a classe para controlar os motores
 MotorDriver m;
+BlynkTimer timer;
+
+char auth[] = "bed483409c46458b9d79cc3362521d93";
 
 int SENSORA1, SENSORA2, SENSORA3, SENSORA4, SENSORA5;
 
@@ -35,172 +42,375 @@ const float distMinCentral = 15.0;
 const float distMaxLateral = 25.0;
 const float distMinLateral = 3.0;
 
-const int velocidadeMax = 255;
-const int velocidadeMedia = 200;
-const int velocidadeMin = 100;
+const int velocidadeMax = 80;
+const int velocidadeMedia = 80;
+const int velocidadeMin = 60;
 
-float cmMsecCentral, inMsecCentral, cmMsecDireita,
-      inMsecDireita, cmMsecEsquerda, inMsecEsquerda;
-
+float cmMsecCentral, cmMsecDireita, cmMsecEsquerda;
 long microsecCentral, microsecDireita, microsecEsquerda;
+boolean isSegmento, isControle, isAutonomo;
 
-int carregando = 5;
+int carregando = 10;
+
+
+int linha = 500;
+
+BLYNK_WRITE(V0) {
+
+  switch (param.asInt())
+  {
+    case 1: {
+
+        Serial.println("Funcao autonoma escolhida!");
+        isAutonomo = true;
+        isSegmento = false;
+        isControle = false;
+
+        break;
+      }
+    case 2: {
+
+        Serial.println("Funcao segmento escolhida!");
+        isSegmento = true;
+        isAutonomo = false;
+        isControle = false;
+
+        break;
+      }
+    case 3: {
+
+        Serial.println("Funcao controle escolhida!");
+        isControle = true;
+        isAutonomo = false;
+        isSegmento = false;
+
+        break;
+      }
+    default:
+      isSegmento = isControle = isAutonomo = false;
+      Serial.println("Carro desligado!");
+
+      break;
+  }
+}
+
+void calibrar() {
+
+  isSegmento = isControle = isAutonomo = false;
+
+  Serial.println("Conectando ao bluetooth");
+
+  for (int i = 0; i < carregando; i++) {
+
+    delay(500);
+
+    //Serial.print(".");
+    Serial.println(" ");
+
+    SENSORA1 = analogRead(pSendor1); // sensor direito
+    SENSORA2 = analogRead(pSendor2); // sensor direito
+    SENSORA3 = analogRead(pSendor3); // sensor centro
+    SENSORA4 = analogRead(pSendor4); // sensor esquerdo
+    SENSORA5 = analogRead(pSendor5); // sensor esquerdo
+
+    cmMsecCentral = sonar_c.ping_cm();
+    cmMsecDireita = sonar_d.ping_cm();
+    cmMsecEsquerda = sonar_e.ping_cm();
+
+    Serial.println("**********************SONAR**************************");
+
+    Serial.print("Distancia Direita em cm: ");
+    Serial.println(cmMsecDireita);
+
+    Serial.print("Distancia Central em cm: ");
+    Serial.println(cmMsecCentral);
+
+    Serial.print("Distancia Esquerda em cm: ");
+    Serial.println(cmMsecEsquerda);
+
+    Serial.println("****************************************************");
+
+    delay(500);
+
+  }
+
+}
 
 void setup() {
 
+  digitalWrite(28, LOW);
+
   Serial.begin(9600);
-  Serial.println("Lendo dados do sensor...");
-  Serial.println("Carregando");
-  
-  for (int i = 0; i < carregando; i++) {
-    
-    Serial.print(".");
+  Serial3.begin(9600);
 
-    SENSORA2 = analogRead(pSendor1);
-    SENSORA2 = analogRead(pSendor2);
-    SENSORA3 = analogRead(pSendor3);
-    SENSORA4 = analogRead(pSendor4);
-    SENSORA5 = analogRead(pSendor5);
+  calibrar();
 
-    microsecCentral = ultrasonicoCentral.timing();
-    microsecDireita = ultrasonicoDireita.timing();
-    microsecEsquerda = ultrasonicoEsquerda.timing();
+  Blynk.begin(Serial3, auth);
 
-    delay(1000);
+  Serial.println("");
+  Serial.println("Bluetooth conectado!");
 
-  }
+  digitalWrite(28, HIGH);
+
+  timer.setInterval(1L, autonomo);
+  timer.setInterval(1L, controle);
+  timer.setInterval(1L, segmento);
+
 }
 
 void loop() {
 
-  SENSORA1 = analogRead(pSendor1);
-  SENSORA2 = analogRead(pSendor2);
-  SENSORA3 = analogRead(pSendor3);
-  SENSORA4 = analogRead(pSendor4);
-  SENSORA5 = analogRead(pSendor5);
-
-  //  Serial.print("Sensor A7: ");
-  //  Serial.println(SENSORA1);
-  //  Serial.print("Sensor A8: ");
-  //  Serial.println(SENSORA2);
-  //  Serial.print("Sensor A9: ");
-  //  Serial.println(SENSORA3);
-  //  Serial.print("Sensor A10: ");
-  //  Serial.println(SENSORA4);
-  //  Serial.print("Sensor A11: ");
-  //  Serial.println(SENSORA5);
-  //  Serial.println("===================================================");
-
-
-  autonomo();
+  //autonomo();
+  //delay(1000);
+  Blynk.run();
+  timer.run();
 
 }
 
-void autonomo() {
+void segmento() {
 
-  microsecCentral = ultrasonicoCentral.timing();
-  microsecDireita = ultrasonicoDireita.timing();
-  microsecEsquerda = ultrasonicoEsquerda.timing();
+  if (isSegmento) {
 
-  //Lendo em centimetros
-  cmMsecDireita = ultrasonicoDireita.convert(microsecDireita, Ultrasonic::CM);
-  //Lendo em polegadas
-  //inMsecDireita = ultrasonicoDireita.convert(microsecDireita, Ultrasonic::IN);
+    Serial.println("Segmento");
 
-  //Lendo em centimetros
-  cmMsecCentral = ultrasonicoCentral.convert(microsecCentral, Ultrasonic::CM);
-  //Lendo em polegadas
-  //inMsecCentral = ultrasonicoCentral.convert(microsecCentral, Ultrasonic::IN);
+    SENSORA1 = analogRead(pSendor1); // sensor direito
+    Serial.print("Sensor direito 2: ");
+    Serial.println(SENSORA1);
 
-  //Lendo em centimetros
-  cmMsecEsquerda = ultrasonicoEsquerda.convert(microsecEsquerda, Ultrasonic::CM);
-  //Lendo em polegadas
-  //inMsecEsquerda = ultrasonicoEsquerda.convert(microsecEsquerda, Ultrasonic::IN);
+    SENSORA2 = analogRead(pSendor2); // sensor direito
+    Serial.print("Sensor direito 1: ");
+    Serial.println(SENSORA2);
 
+    SENSORA3 = analogRead(pSendor3); // sensor direito
+    Serial.print("Sensor centro: ");
+    Serial.println(SENSORA3);
 
-  Serial.print("Distancia Direita em cm: ");
-  Serial.println(cmMsecDireita);
-  Serial.print("Distancia Central em cm: ");
-  Serial.println(cmMsecCentral);
+    SENSORA4 = analogRead(pSendor4); // sensor esquerdo
+    Serial.print("Sensor esquerdo 1: ");
+    Serial.println(SENSORA4);
 
-  Serial.print("Distancia Esquerda em cm: ");
-  Serial.println(cmMsecEsquerda);
-  Serial.println("===================================================");
+    SENSORA5 = analogRead(pSendor5); // sensor esquerdo
+    Serial.print("Sensor esquerdo 2: ");
+    Serial.println(SENSORA5);
 
-  
-    if (cmMsecCentral >= distMinCentral) {
-  
-      Serial.println("Movendo para frente!");
-      frente(velocidadeMedia);
-  
-      if (cmMsecDireita <= distMinLateral) {
-  
-        Serial.println("Parede proxima  - Movendo para esquerda!");
-        //esqueda(velocidadeMax, 20);
-  
-      } else if (cmMsecEsquerda <= distMinLateral) {
-  
-        Serial.println("Parede proxima  - Movendo para direita!");
-        //direita(velocidadeMax, 20);
-  
-      }
-  
-    } else if (cmMsecDireita >= distMaxLateral) {
-  
-      Serial.println("Movendo para direita!");
-      traz(velocidadeMin);
-      direita(velocidadeMedia, 350);
-  
-    } else if (cmMsecEsquerda >= distMaxLateral) {
-  
-      Serial.println("Movendo para esquerda!");
-      traz(velocidadeMin);
-      esqueda(velocidadeMedia, 350);
-  
-    } else {
-  
-      Serial.println("Movendo para traz!");
-      traz(velocidadeMax);
-  
+    if (SENSORA2 < linha && SENSORA4 < linha) {
+      // anda para frente
+      frente(velocidadeMax, 50);
+      Serial.println("Segmento para frente!!");
     }
 
-//  if (cmMsecCentral >= distMinCentral) {
-//
-//    Serial.println("Movendo para frente!");
-//    frente(velocidadeMedia);
-//
-//    //    if (cmMsecDireita <= distMinLateral) {
-//    //
-//    //      Serial.println("Parede proxima  - Movendo para esquerda!");
-//    //      //esqueda(velocidadeMax, 20);
-//    //
-//    //    } else if (cmMsecEsquerda <= distMinLateral) {
-//    //
-//    //      Serial.println("Parede proxima  - Movendo para direita!");
-//    //      //direita(velocidadeMax, 20);
-//    //
-//    //    }
-//
-//  } else if (cmMsecDireita > cmMsecEsquerda) {
-//
-//    Serial.println("Movendo para direita!");
-//    traz(velocidadeMin);
-//    direita(velocidadeMedia, 350);
-//
-//  } else if (cmMsecEsquerda > cmMsecDireita) {
-//
-//    Serial.println("Movendo para esquerda!");
-//    traz(velocidadeMin);
-//    esqueda(velocidadeMedia, 350);
-//
-//  } else {
-//
-//    Serial.println("Movendo para traz!");
-//    traz(velocidadeMax);
-//
-//  }
+    if (SENSORA2 > linha && SENSORA4 < linha) {
+      // anda para esquerda
+      esqueda(velocidadeMax, 50);
+      Serial.println("Segmento para esquerda!!");
+    }
 
-  //delay(1000);
+    if (SENSORA2 < linha && SENSORA4 > linha) {
+      // anda para direita
+      direita(velocidadeMax, 50);
+      Serial.println("Segmento para direita!!");
+    }
+
+    if (SENSORA2 > linha && SENSORA4 > linha) {
+
+      // anda para frente
+      frente(velocidadeMax, 50);
+      Serial.println("Segmento para frente!!");
+    }
+
+    if (SENSORA1 > linha && SENSORA2 > linha && SENSORA3 > linha && SENSORA4 > linha && SENSORA5 > linha) {
+
+      parar(500);
+      esqueda(velocidadeMax, 50);
+      Serial.println("Segmento para parado!!");
+
+    }
+
+    //delay(500);
+  }
+
+}
+
+void controle() {
+
+  if (isControle) {
+
+    Serial.println("Controle");
+
+    if (digitalRead(31) == HIGH) {
+
+      frente(velocidadeMedia, 10);
+
+    } else if (digitalRead(32) == HIGH) {
+
+      direita(velocidadeMedia, 10);
+
+    } else if (digitalRead(33) == HIGH) {
+
+      esqueda(velocidadeMedia, 10);
+
+    } else if (digitalRead(34) == HIGH) {
+
+      traz(velocidadeMedia, 10);
+
+    } else {
+
+      parar(100);
+
+    }
+
+  }
+
+}
+
+
+void autonomo() {
+
+  if (isAutonomo) {
+
+    Serial.println("Modo Autonomo Ativo.");
+
+    cmMsecCentral = sonar_c.ping_cm();
+    cmMsecDireita = sonar_d.ping_cm();
+    cmMsecEsquerda = sonar_e.ping_cm();
+
+    Serial.println("**********************SONAR**************************");
+
+    Serial.print("Distancia Direita em cm: ");
+    Serial.println(cmMsecDireita);
+
+    Serial.print("Distancia Central em cm: ");
+    Serial.println(cmMsecCentral);
+
+    Serial.print("Distancia Esquerda em cm: ");
+    Serial.println(cmMsecEsquerda);
+    Serial.println("===================================================");
+
+
+    if (cmMsecCentral >= distMinCentral) {
+
+      Serial.println("Movendo para frente!");
+      frente(velocidadeMedia, 10);
+
+      if (cmMsecDireita <= distMinLateral) {
+
+        Serial.println("Parede proxima  - Movendo para esquerda!");
+        esqueda(velocidadeMin, 20);
+
+      } else if (cmMsecEsquerda <= distMinLateral) {
+
+        Serial.println("Parede proxima  - Movendo para direita!");
+        direita(velocidadeMin, 20);
+
+      }
+
+    } else if (cmMsecDireita >= distMaxLateral) {
+
+      Serial.println("Movendo para direita!");
+      //traz(velocidadeMin);
+      direita(velocidadeMedia, 350);
+
+    } else if (cmMsecEsquerda >= distMaxLateral) {
+
+      Serial.println("Movendo para esquerda!");
+      //traz(velocidadeMin);
+      esqueda(velocidadeMedia, 350);
+
+    } else {
+
+      Serial.println("Movendo para traz!");
+      traz(velocidadeMedia, 10);
+
+    }
+
+    // testar esse codigo
+    if (cmMsecCentral >= distMinCentral) {
+
+      Serial.println("Movendo para frente!");
+      frente(velocidadeMedia, 10);
+
+    } else {
+
+      if (cmMsecDireita > cmMsecEsquerda) {
+
+        Serial.println("Movendo para direita!");
+        //traz(velocidadeMin);
+        direita(velocidadeMedia, 350);
+
+      } else  if (cmMsecEsquerda  > cmMsecDireita) {
+
+        Serial.println("Movendo para esquerda!");
+        //traz(velocidadeMin);
+        esqueda(velocidadeMedia, 350);
+
+      } else {
+
+        Serial.println("Movendo para traz!");
+        traz(velocidadeMedia, 10);
+
+      }
+
+    }
+
+    //delay(1000);
+  }
+}
+
+
+
+void direita(int velocidade, int tempo) {
+
+  for (int i = velocidade; i > (velocidadeMin - 10); i--) {
+    m.motor(motor_direito, BACKWARD, i);
+    m.motor(motor_esquerdo, BACKWARD, i);
+  }
+
+  delay(tempo);
+}
+
+void esqueda(int velocidade, int tempo) {
+
+  for (int i = velocidade; i > (velocidadeMin - 10); i--) {
+    m.motor(motor_esquerdo, FORWARD, i);
+    m.motor(motor_direito, FORWARD, i);
+  }
+
+  delay(tempo);
+}
+
+void frente(int velocidade, int tempo) {
+
+  //parar(50);
+  for (int i = velocidade; i > (velocidadeMin - 10); i--) {
+
+    m.motor(motor_esquerdo, FORWARD, i);
+    m.motor(motor_direito, BACKWARD, i);
+
+
+  }
+
+  delay(tempo);
+
+}
+
+void traz(int velocidade, int tempo) {
+
+  //parar(50);
+  for (int i = velocidade; i > (velocidadeMin - 10); i--) {
+
+    m.motor(motor_direito, FORWARD, i);
+    m.motor(motor_esquerdo, BACKWARD, i);
+
+  }
+
+  delay(tempo);
+}
+
+void parar(int tempo) {
+
+  m.motor(motor_direito, RELEASE, -1);
+  m.motor(motor_esquerdo, RELEASE, -1);
+  delay(tempo);
 }
 
 //void regular_centralizacao_esquerda(int velocidade) {
@@ -239,109 +449,3 @@ void autonomo() {
 //
 //  }
 //}
-
-void direita(int velocidade, int tempo) {
-
-  //parar(tempo);
-  m.motor(motor_direito, BACKWARD, velocidade);
-  m.motor(motor_esquerdo, BACKWARD, velocidade);
-  //
-  //  delay(tempo);
-
-  //  for (int i = velocidade; i > velocidadeMin; i--) {
-  //    m.motor(motor_direito, BACKWARD, i);
-  //    m.motor(motor_esquerdo, BACKWARD, i);
-  //  }
-
-  delay(tempo);
-}
-
-void esqueda(int velocidade, int tempo) {
-
-  //parar(tempo);
-  m.motor(motor_esquerdo, FORWARD, velocidade);
-  m.motor(motor_direito, FORWARD, velocidade);
-  //
-  //  delay(tempo);
-
-  //  for (int i = velocidade; i > velocidadeMin; i--) {
-  //    m.motor(motor_esquerdo, FORWARD, i);
-  //    m.motor(motor_direito, FORWARD, i);
-  //  }
-
-  delay(tempo);
-}
-
-//void move_direita_traz(int velocidade) {
-//
-//  //m.motor(motor_esquerdo, BACKWARD, 0);
-//  //m.motor(motor_direito, FORWARD, 0);
-//
-//  parar();
-//
-//  //delay(50);
-//
-//  for (int i = velocidade; i > velocidadeMin; i--) {
-//    m.motor(motor_direito, FORWARD, i);
-//    m.motor(motor_esquerdo, FORWARD, i);
-//  }
-//
-//  delay(50);
-//
-//}
-
-//void move_esqueda_traz(int velocidade) {
-//
-//  //m.motor(motor_direito, FORWARD, 0);
-//  //m.motor(motor_esquerdo, BACKWARD, 0);
-//
-//  parar();
-//
-//  //delay(50);
-//
-//  for (int i = velocidade; i > velocidadeMin; i--) {
-//    m.motor(motor_direito, BACKWARD, i);
-//    m.motor(motor_esquerdo, BACKWARD, i);
-//  }
-//
-//  delay(50);
-//
-//}
-
-void frente(int velocidade) {
-
-  //delay(20);
-  //parar(50);
-  for (int i = velocidade; i > velocidadeMin; i--) {
-
-    m.motor(motor_esquerdo, FORWARD, i);
-    m.motor(motor_direito, BACKWARD, i);
-
-
-  }
-
-  delay(10);
-
-}
-
-void traz(int velocidade) {
-
-  //delay(20);
-
-  parar(50);
-  for (int i = velocidade; i > velocidadeMin; i--) {
-
-    m.motor(motor_direito, FORWARD, i);
-    m.motor(motor_esquerdo, BACKWARD, i);
-
-  }
-
-  delay(10);
-}
-
-void parar(int tempo) {
-
-  m.motor(motor_direito, BRAKE, 0);
-  m.motor(motor_esquerdo, BRAKE, 0);
-  delay(tempo);
-}
