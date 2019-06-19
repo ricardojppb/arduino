@@ -33,6 +33,7 @@ NewPing sonar_e(pSE_t, pSE_e, MAX_DISTANCE);
 //Definindo a classe para controlar os motores
 MotorDriver m;
 BlynkTimer timer;
+WidgetLCD lcd(V1);
 
 char auth[] = "bed483409c46458b9d79cc3362521d93";
 
@@ -100,12 +101,16 @@ void calibrar() {
 
   Serial.println("Conectando ao bluetooth");
 
+  lcd.clear(); //Use it to clear the LCD Widget
+  lcd.print(0, 0, "Conectando ao bluetooth!");
+
   for (int i = 0; i < carregando; i++) {
 
     delay(500);
 
     //Serial.print(".");
     Serial.println(" ");
+    lcd.print(i, 1, ".");
 
     SENSORA1 = analogRead(pSendor1); // sensor direito
     SENSORA2 = analogRead(pSendor2); // sensor direito
@@ -150,6 +155,9 @@ void setup() {
   Serial.println("");
   Serial.println("Bluetooth conectado!");
 
+  lcd.clear(); //Use it to clear the LCD Widget
+  lcd.print(0, 0, "Bluetooth conectado!");
+
   digitalWrite(28, HIGH);
 
   timer.setInterval(1L, autonomo);
@@ -170,6 +178,9 @@ void loop() {
 void segmento() {
 
   if (isSegmento) {
+
+    lcd.clear(); //Use it to clear the LCD Widget
+    lcd.print(0, 0, "Modo Segmento Ativado!");
 
     Serial.println("Segmento");
 
@@ -195,34 +206,38 @@ void segmento() {
 
     if (SENSORA2 < linha && SENSORA4 < linha) {
       // anda para frente
-      frente(velocidadeMax, 50);
+      frente(velocidadeMedia, 50);
       //parar(50);
       Serial.println("Segmento para frente!!");
+      lcd.print(0, 1, "Segmento para frente!!");
     }
 
     if (SENSORA2 > linha && SENSORA4 < linha) {
       // anda para esquerda
 
-      direita(velocidadeMax, 10);
-      frente(velocidadeMax, 50);
+      direita(velocidadeMedia, 10);
+      frente(velocidadeMedia, 50);
       //parar(50);
       Serial.println("Segmento para esquerda!!");
+      lcd.print(0, 1, "Segmento para esquerda!!");
     }
 
     if (SENSORA2 < linha && SENSORA4 > linha) {
       // anda para direita
-      esqueda(velocidadeMax, 10);
-      frente(velocidadeMax, 50);
+      esqueda(velocidadeMedia, 10);
+      frente(velocidadeMedia, 50);
       //parar(50);
       Serial.println("Segmento para direita!!");
+      lcd.print(0, 1, "Segmento para direita!!");
     }
 
     if (SENSORA2 > linha && SENSORA4 > linha) {
 
       // anda para frente
-      esqueda(velocidadeMax, 50);
+      esqueda(velocidadeMedia, 50);
       //parar(50);
       Serial.println("Segmento para frente!!");
+      lcd.print(0, 1, "Procurando faixa!!");
     }
 
     //    if (SENSORA1 > linha && SENSORA2 > linha && SENSORA3 > linha && SENSORA4 > linha && SENSORA5 > linha) {
@@ -242,27 +257,35 @@ void controle() {
 
   if (isControle) {
 
+    lcd.clear(); //Use it to clear the LCD Widget
+    lcd.print(0, 0, "Modo Controle Ativado!");
+
     Serial.println("Controle");
 
     if (digitalRead(31) == HIGH) {
 
       frente(velocidadeMedia, 10);
+      lcd.print(0, 1, "Movendo para frente!!");
 
     } else if (digitalRead(32) == HIGH) {
 
       direita(velocidadeMedia, 10);
+      lcd.print(0, 1, "Movendo para direita!!");
 
     } else if (digitalRead(33) == HIGH) {
 
       esqueda(velocidadeMedia, 10);
+      lcd.print(0, 1, "Movendo para esquerda!!");
 
     } else if (digitalRead(34) == HIGH) {
 
       traz(velocidadeMedia, 10);
+      lcd.print(0, 1, "Movendo para traz!!");
 
     } else {
 
       parar(100);
+      lcd.print(0, 1, "Parando!!");
 
     }
 
@@ -276,6 +299,9 @@ void autonomo() {
   if (isAutonomo) {
 
     Serial.println("Modo Autonomo Ativo.");
+
+    lcd.clear(); //Use it to clear the LCD Widget
+    lcd.print(0, 0, "Modo Autonomo Ativado!");
 
     cmMsecCentral = sonar_c.ping_cm();
     cmMsecDireita = sonar_d.ping_cm();
@@ -298,10 +324,12 @@ void autonomo() {
 
       Serial.println("Movendo para frente!");
       frente(velocidadeMax, 400);
+      lcd.print(0, 1, "Movendo para frente!!");
 
       if (cmMsecDireita <= distMinLateral) {
 
         Serial.println("Parede proxima  - Movendo para direita!");
+        lcd.print(0, 1, "Parede proxima  - Movendo para direita!");
         traz(velocidadeMax, 100);
         for (int i = 0; i < 10; i++) {
           direita(velocidadeMax, 50);
@@ -312,7 +340,8 @@ void autonomo() {
       } else if (cmMsecEsquerda <= distMinLateral) {
 
         Serial.println("Parede proxima  - Movendo para esquerda!");
-
+        lcd.print(0, 1, "Parede proxima  - Movendo para esquerda!");
+        
         traz(velocidadeMax, 100);
         for (int i = 0; i < 10; i++) {
           esqueda(velocidadeMax, 50);
@@ -325,14 +354,16 @@ void autonomo() {
     } else if (cmMsecDireita >= distMaxLateral) {
 
       Serial.println("Movendo para direita!");
+      lcd.print(0, 1, "Movendo para direita!");
       //traz(velocidadeMax, 100);
       for (int i = 0; i < 5; i++) {
-      esqueda(velocidadeMax, 50);
+        esqueda(velocidadeMax, 50);
       }
 
     } else if (cmMsecEsquerda >= distMaxLateral) {
 
       Serial.println("Movendo para esquerda!");
+      lcd.print(0, 1, "Movendo para esquerda!");
       //traz(velocidadeMax, 100);
       for (int i = 0; i < 5; i++) {
         direita(velocidadeMax, 50);
@@ -341,6 +372,7 @@ void autonomo() {
     } else {
 
       Serial.println("Movendo para traz!");
+      lcd.print(0, 1, "Movendo para traz!");
       parar(20);
       traz(velocidadeMedia, 100);
 
