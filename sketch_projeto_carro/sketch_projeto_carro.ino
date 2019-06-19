@@ -39,12 +39,12 @@ char auth[] = "bed483409c46458b9d79cc3362521d93";
 int SENSORA1, SENSORA2, SENSORA3, SENSORA4, SENSORA5;
 
 const float distMinCentral = 15.0;
-const float distMaxLateral = 25.0;
-const float distMinLateral = 3.0;
+const float distMaxLateral = 40.0;
+const float distMinLateral = 6.0;
 
-const int velocidadeMax = 80;
-const int velocidadeMedia = 80;
-const int velocidadeMin = 60;
+const int velocidadeMax = 255;
+const int velocidadeMedia = 200;
+const int velocidadeMin = 80;
 
 float cmMsecCentral, cmMsecDireita, cmMsecEsquerda;
 long microsecCentral, microsecDireita, microsecEsquerda;
@@ -181,7 +181,7 @@ void segmento() {
     Serial.print("Sensor direito 1: ");
     Serial.println(SENSORA2);
 
-    SENSORA3 = analogRead(pSendor3); // sensor direito
+    SENSORA3 = analogRead(pSendor3); // sensor centro
     Serial.print("Sensor centro: ");
     Serial.println(SENSORA3);
 
@@ -196,35 +196,42 @@ void segmento() {
     if (SENSORA2 < linha && SENSORA4 < linha) {
       // anda para frente
       frente(velocidadeMax, 50);
+      //parar(50);
       Serial.println("Segmento para frente!!");
     }
 
     if (SENSORA2 > linha && SENSORA4 < linha) {
       // anda para esquerda
-      esqueda(velocidadeMax, 50);
+
+      direita(velocidadeMax, 10);
+      frente(velocidadeMax, 50);
+      //parar(50);
       Serial.println("Segmento para esquerda!!");
     }
 
     if (SENSORA2 < linha && SENSORA4 > linha) {
       // anda para direita
-      direita(velocidadeMax, 50);
+      esqueda(velocidadeMax, 10);
+      frente(velocidadeMax, 50);
+      //parar(50);
       Serial.println("Segmento para direita!!");
     }
 
     if (SENSORA2 > linha && SENSORA4 > linha) {
 
       // anda para frente
-      frente(velocidadeMax, 50);
+      esqueda(velocidadeMax, 50);
+      //parar(50);
       Serial.println("Segmento para frente!!");
     }
 
-    if (SENSORA1 > linha && SENSORA2 > linha && SENSORA3 > linha && SENSORA4 > linha && SENSORA5 > linha) {
-
-      parar(500);
-      esqueda(velocidadeMax, 50);
-      Serial.println("Segmento para parado!!");
-
-    }
+    //    if (SENSORA1 > linha && SENSORA2 > linha && SENSORA3 > linha && SENSORA4 > linha && SENSORA5 > linha) {
+    //
+    //      parar(500);
+    //      esqueda(velocidadeMedia, 50);
+    //      Serial.println("Segmento para parado!!");
+    //
+    //    }
 
     //delay(500);
   }
@@ -290,67 +297,86 @@ void autonomo() {
     if (cmMsecCentral >= distMinCentral) {
 
       Serial.println("Movendo para frente!");
-      frente(velocidadeMedia, 10);
+      frente(velocidadeMax, 400);
 
       if (cmMsecDireita <= distMinLateral) {
 
-        Serial.println("Parede proxima  - Movendo para esquerda!");
-        esqueda(velocidadeMin, 20);
+        Serial.println("Parede proxima  - Movendo para direita!");
+        traz(velocidadeMax, 100);
+        for (int i = 0; i < 10; i++) {
+          direita(velocidadeMax, 50);
+        }
+        frente(velocidadeMax, 100);
+        //parar(5);
 
       } else if (cmMsecEsquerda <= distMinLateral) {
 
-        Serial.println("Parede proxima  - Movendo para direita!");
-        direita(velocidadeMin, 20);
+        Serial.println("Parede proxima  - Movendo para esquerda!");
+
+        traz(velocidadeMax, 100);
+        for (int i = 0; i < 10; i++) {
+          esqueda(velocidadeMax, 50);
+        }
+        frente(velocidadeMax, 100);
+        //parar(5);
 
       }
 
     } else if (cmMsecDireita >= distMaxLateral) {
 
       Serial.println("Movendo para direita!");
-      //traz(velocidadeMin);
-      direita(velocidadeMedia, 350);
+      //traz(velocidadeMax, 100);
+      for (int i = 0; i < 5; i++) {
+      esqueda(velocidadeMax, 50);
+      }
 
     } else if (cmMsecEsquerda >= distMaxLateral) {
 
       Serial.println("Movendo para esquerda!");
-      //traz(velocidadeMin);
-      esqueda(velocidadeMedia, 350);
+      //traz(velocidadeMax, 100);
+      for (int i = 0; i < 5; i++) {
+        direita(velocidadeMax, 50);
+      }
 
     } else {
 
       Serial.println("Movendo para traz!");
-      traz(velocidadeMedia, 10);
+      parar(20);
+      traz(velocidadeMedia, 100);
 
     }
 
     // testar esse codigo
-    if (cmMsecCentral >= distMinCentral) {
+    //    if (cmMsecCentral >= distMinCentral) {
+    //
+    //      Serial.println("Movendo para frente!");
+    //      frente(velocidadeMax, 10);
+    //
+    //    } else {
+    //
+    //      if (cmMsecDireita > cmMsecEsquerda) {
+    //
+    //        Serial.println("Movendo para direita!");
+    //        //traz(velocidadeMin);
+    //        parar(100);
+    //        direita(velocidadeMax, 350);
+    //
+    //      } else  if (cmMsecEsquerda  > cmMsecDireita) {
+    //
+    //        Serial.println("Movendo para esquerda!");
+    //        //traz(velocidadeMin);
+    //        parar(100);
+    //        esqueda(velocidadeMax, 350);
+    //
+    //      } else {
+    //
+    //        Serial.println("Movendo para traz!");
+    //        parar(100);
+    //        traz(velocidadeMax, 10);
+    //
+    //      }
 
-      Serial.println("Movendo para frente!");
-      frente(velocidadeMedia, 10);
-
-    } else {
-
-      if (cmMsecDireita > cmMsecEsquerda) {
-
-        Serial.println("Movendo para direita!");
-        //traz(velocidadeMin);
-        direita(velocidadeMedia, 350);
-
-      } else  if (cmMsecEsquerda  > cmMsecDireita) {
-
-        Serial.println("Movendo para esquerda!");
-        //traz(velocidadeMin);
-        esqueda(velocidadeMedia, 350);
-
-      } else {
-
-        Serial.println("Movendo para traz!");
-        traz(velocidadeMedia, 10);
-
-      }
-
-    }
+    //    }
 
     //delay(1000);
   }
@@ -361,18 +387,22 @@ void autonomo() {
 void direita(int velocidade, int tempo) {
 
   for (int i = velocidade; i > (velocidadeMin - 10); i--) {
-    m.motor(motor_direito, BACKWARD, i);
-    m.motor(motor_esquerdo, BACKWARD, i);
-  }
 
+    m.motor(motor_esquerdo, FORWARD, i);
+    m.motor(motor_direito, BACKWARD, i);
+
+  }
   delay(tempo);
+
 }
 
 void esqueda(int velocidade, int tempo) {
 
   for (int i = velocidade; i > (velocidadeMin - 10); i--) {
-    m.motor(motor_esquerdo, FORWARD, i);
+
+    m.motor(motor_esquerdo, BACKWARD, i);
     m.motor(motor_direito, FORWARD, i);
+
   }
 
   delay(tempo);
@@ -384,8 +414,7 @@ void frente(int velocidade, int tempo) {
   for (int i = velocidade; i > (velocidadeMin - 10); i--) {
 
     m.motor(motor_esquerdo, FORWARD, i);
-    m.motor(motor_direito, BACKWARD, i);
-
+    m.motor(motor_direito, FORWARD, i);
 
   }
 
@@ -398,7 +427,7 @@ void traz(int velocidade, int tempo) {
   //parar(50);
   for (int i = velocidade; i > (velocidadeMin - 10); i--) {
 
-    m.motor(motor_direito, FORWARD, i);
+    m.motor(motor_direito, BACKWARD, i);
     m.motor(motor_esquerdo, BACKWARD, i);
 
   }
