@@ -1,13 +1,13 @@
 //Emula a serial nos pinos digitais 4 e 5
 #include <SoftwareSerial.h>
 
-//Definindo RX, TX
-SoftwareSerial SerialBT(4, 5);
-
 //Configuracoes biblioteca Blynk
+#include <BlynkSimpleSerialBLE.h>
 #define BLYNK_PRINT SerialBT
 #define BLYNK_USE_DIRECT_CONNECT
-#include <BlynkSimpleSerialBLE.h>
+
+//Emula a serial nos pinos digitais 4 e 5 RX, TX
+SoftwareSerial SerialBT(4, 5);
 
 //Token de autorizacao
 char auth[] = "f22ca67079e548d78a5fa8f49899af60";
