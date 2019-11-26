@@ -10,7 +10,7 @@
 AF_DCMotor motor1(1);
 AF_DCMotor motor2(2);
 
-int TempoGirar = 1;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
+int tempoGirar = 1;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
 int distanciaObstaculo = 20; //distância para o robô parar e recalcular o melhor caminho
 int velocidadeMotoresD = 70; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
 int velocidadeMotoresE = 70;
@@ -274,7 +274,7 @@ void direita() {
   Serial.println(" Para a direita ");
   motor1.run(BACKWARD);
   motor2.run(FORWARD); // Roda vai para frente
-  delay(TempoGirar);
+  delay(tempoGirar);
 
 }
 
@@ -291,6 +291,6 @@ void esquerda() {
   Serial.println(" Para a esquerda ");
   motor1.run(FORWARD); // Roda vai para frente
   motor2.run(BACKWARD); // Roda vai para trás
-  delay(TempoGirar);
+  delay(tempoGirar);
 
 }
