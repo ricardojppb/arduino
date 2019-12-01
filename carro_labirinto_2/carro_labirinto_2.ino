@@ -1,6 +1,6 @@
-
 #include <Servo.h>    // inclui biblioteca de manipulação de servos motores.    
 #include <AFMotor.h>   // inclui biblioteca de manipulação de motores DCs.  
+#include <Ultrasonic.h>
 
 //Definindo os pinos sonar
 #define trigPin A0 //Pino TRIG
@@ -10,19 +10,22 @@
 AF_DCMotor motor1(1);
 AF_DCMotor motor2(2);
 
-int tempoGirar = 1;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
-int distanciaObstaculo = 20; //distância para o robô parar e recalcular o melhor caminho
-int velocidadeMotoresD = 70; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
-int velocidadeMotoresE = 70;
+int tempoGirar = 20;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
+int distanciaObstaculo = 17; //distância para o robô parar e recalcular o melhor caminho
+
+int velocidadeMotoresDCalibracao = 4;
+int velocidadeMotoresD = 80 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
+int velocidadeMotoresE = 80;
+int velocidadeMotoresDMax = 110 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
+int velocidadeMotoresEMax = 110;
 int servoC = 90, servoD = 180, servoE = 0;
 
 Servo servo_ultra_sonico; // nomeando o servo motor
+Ultrasonic ultrasonic(trigPin, echoPin);
 
 //variáveis  para o sensor ultrassonico
 long duracao;
 long distancia_cm = 0;
-int minimumRange = 5; //tempo de resposta do sensor
-int maximumRange = 200;
 
 // executado na inicialização do Arduino
 void setup() {
@@ -30,19 +33,16 @@ void setup() {
   Serial.begin(9600); // inicializa a comunicação serial para mostrar dados
 
   servo_ultra_sonico.attach(10);  // Define o mini servo motor ligado no pino digital 10.
-  pinMode(trigPin, OUTPUT); //define o pino TRIG como saída
-  pinMode(echoPin, INPUT);  //define o pino ECHO como entrada
+  //pinMode(trigPin, OUTPUT); //define o pino TRIG como saída
+  //pinMode(echoPin, INPUT);  //define o pino ECHO como entrada
 
   motor1.setSpeed(velocidadeMotoresD);     // Define a velocidade para os motores. A velocidade máxima é 255.
   motor2.setSpeed(velocidadeMotoresE);     //Usamos uma bateria de 9v 450mAh, com ela a velocidade ficou boa. Mas dependendo da bateria utilizada a velocidade deverá ser utilizada. Não use pilhas, pois são fracas
 
-  //inicializa com os motores parados
-  motor1.run(RELEASE);
-  motor2.run(RELEASE);
+  parar();  //inica com os motores parados
 
   servo_ultra_sonico.write(servoC);   // O servo do sensor se inicia a 90 graus (meio)
 
-  parar();  //inica com os motores parados
 }
 
 // Função principal do Arduino
@@ -64,7 +64,15 @@ void pensar() {
 
   if (distancia > distanciaObstaculo) {  // Se a distância for maior que 20 cm
 
-    frente(); //robô anda para frente
+    if (distancia > 2000 or distancia < 1) {
+
+      Serial.println("Distancia Centro muito Proxima: " + distancia);
+      re();
+
+    } else {
+
+      frente(); //robô anda para frente
+    }
 
   } else {
 
@@ -78,22 +86,40 @@ void pensar() {
 // Função para ler e calcular a distância do sensor ultrassônico
 int lerSonar() {
 
-  digitalWrite(trigPin, LOW);
+  distancia_cm = 0;
 
-  delayMicroseconds(2);
+  for (int i = 0; i < 3; i++) {
 
-  digitalWrite(trigPin, HIGH);
+    //    digitalWrite(trigPin, LOW);
+    //
+    //    delayMicroseconds(2);
+    //
+    //    digitalWrite(trigPin, HIGH);
+    //
+    //    delayMicroseconds(10);
+    //
+    //    digitalWrite(trigPin, LOW);
+    //
+    //    int distancia = 0;
+    //
+    //    duracao = pulseIn(echoPin, HIGH); //Captura a duração em tempo do retorno do som.
+    //
+    //    distancia = duracao / 56; //Calcula a distância
+    //
+    //    distancia_cm = distancia_cm + distancia;
 
-  delayMicroseconds(10);
 
-  digitalWrite(trigPin, LOW);
+    // novo teste
+    float cmMsec;
+    long microsec = ultrasonic.timing();
+    distancia_cm = ultrasonic.convert(microsec, Ultrasonic::CM);
 
-  duracao = pulseIn(echoPin, HIGH); //Captura a duração em tempo do retorno do som.
-  distancia_cm = duracao / 56; //Calcula a distância
+    delay(5);
 
-  delay(10);
+  }
 
-  return distancia_cm; // Retorna a distância
+  return distancia_cm;
+  //return distancia_cm / 10;
 }
 
 // Função para calcular a distância do centro
@@ -192,6 +218,7 @@ char calculaMelhorDistancia() {
   if (maiorDistancia <= distanciaObstaculo) { //distância limite para parar o robô
 
     re();
+
     posicionaCarroMelhorCaminho();
 
   }
@@ -210,13 +237,21 @@ void posicionaCarroMelhorCaminho() {
   Serial.println(melhorDist);
 
   if (melhorDist == 'c') {
+
     pensar();
+
   } else if (melhorDist == 'd') {
+
     direita();
+
   } else if (melhorDist == 'e') {
+
     esquerda();
+
   } else {
+
     re();
+
   }
 
   reposicionaServoSonar();
@@ -224,6 +259,7 @@ void posicionaCarroMelhorCaminho() {
 
 // Função para deixar o sensor "olho" do robô no centro
 void reposicionaServoSonar() {
+
   servo_ultra_sonico.write(servoC);
   delay(200);
 }
@@ -232,8 +268,18 @@ void reposicionaServoSonar() {
 void parar() {
 
   Serial.println(" Motor: Parar ");
+  motor1.setSpeed(0);
+  motor2.setSpeed(0);
+
+  delay(10);
+
   motor1.run(RELEASE); // Motor para
   motor2.run(RELEASE);
+
+  delay(50);
+
+  motor1.setSpeed(velocidadeMotoresD);
+  motor2.setSpeed(velocidadeMotoresE);
 
 }
 
@@ -241,56 +287,121 @@ void parar() {
 void frente() {
 
   Serial.println("Motor: Frente ");
+
+  motor1.setSpeed(velocidadeMotoresDMax);
+  motor2.setSpeed(velocidadeMotoresEMax);
+
+  delay(10);
+
   motor1.run(BACKWARD); // Roda vai para frente
   motor2.run(BACKWARD);
-  delay(50);
+
+  delay(10);
+
+  motor1.setSpeed(velocidadeMotoresD);
+  motor2.setSpeed(velocidadeMotoresE);
+
+  delay(10);
+
+  motor1.run(BACKWARD); // Roda vai para frente
+  motor2.run(BACKWARD);
+
+  delay(10);
 
 }
 
-// Função que faz o robô andar para trás e emite som quando ele dá ré
 void re() {
 
+
   Serial.println("Motor: ré ");
+  motor1.setSpeed(velocidadeMotoresDMax);
+  motor2.setSpeed(velocidadeMotoresEMax);
+
+  delay(10);
+
   for (int i = 0; i <= 3; i++) {
-    delay(100);
-    motor1.run(FORWARD);    // Roda vai para trás
-    motor2.run(FORWARD);    // Roda vai para trás
-    delay(100);
+
+    motor1.run(FORWARD);
+    motor2.run(FORWARD);
+
+    delay(10);
+
+    motor1.setSpeed(velocidadeMotoresD);
+    motor2.setSpeed(velocidadeMotoresE);
+
+    delay(10);
+
+    motor1.run(FORWARD);
+    motor2.run(FORWARD);
+
+    delay(10);
+
   }
+
   parar();
 
 }
 
-// Função que faz o robô virar à direita, https://SeuRobo.com.br/
+
 void direita() {
 
-  motor1.setSpeed(velocidadeMotoresD - 10);
-  motor2.setSpeed(velocidadeMotoresE - 10);
+  Serial.println(" Para a direita ");
 
-  delay(100);
+  //re();
+  //
+  //  delay(100);
+  motor1.setSpeed(velocidadeMotoresDMax);
+  motor2.setSpeed(velocidadeMotoresEMax);
+
+  delay(10);
+
   motor1.run(FORWARD);    //o robô dá uma ré para não colidir ao girar
   motor2.run(FORWARD);
-  delay(50);
-  Serial.println(" Para a direita ");
-  motor1.run(BACKWARD);
+
+  delay(20);
+
+  motor1.setSpeed(velocidadeMotoresD);
+  motor2.setSpeed(velocidadeMotoresE);
+
+  delay(10);
+
+  motor1.run(BACKWARD); // Roda para trás
   motor2.run(FORWARD); // Roda vai para frente
+
   delay(tempoGirar);
+
+  //parar();
 
 }
 
 // Função que faz o robô virar à esquerda
 void esquerda() {
 
-  motor1.setSpeed(velocidadeMotoresD - 10);
-  motor2.setSpeed(velocidadeMotoresE - 10);
+  Serial.println(" Para a esquerda ");
 
-  delay(100);
+  //re();
+
+  //  delay(100);
+  motor1.setSpeed(velocidadeMotoresDMax);
+  motor2.setSpeed(velocidadeMotoresEMax);
+
+  delay(10);
+
   motor1.run(FORWARD);    // // O robô dá uma ré para não colidir ao girar
   motor2.run(FORWARD);
-  delay(50);
-  Serial.println(" Para a esquerda ");
+
+  delay(20);
+
+  motor1.setSpeed(velocidadeMotoresD);
+  motor2.setSpeed(velocidadeMotoresE);
+
+  delay(10);
+
   motor1.run(FORWARD); // Roda vai para frente
   motor2.run(BACKWARD); // Roda vai para trás
+
   delay(tempoGirar);
+
+  //parar();
 
 }
