@@ -6,18 +6,22 @@
 #define trigPin A0 //Pino TRIG
 #define echoPin A1 //Pino ECHO
 
+//Definindo os pinos sensor reflexivo
+#define sensorD A2
+#define sensorE A3
+
 //Definicao dos motores
 AF_DCMotor motor1(1);
 AF_DCMotor motor2(2);
 
-int tempoGirar = 20;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
+int tempoGirar = 300;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
 int distanciaObstaculo = 17; //distância para o robô parar e recalcular o melhor caminho
 
 int velocidadeMotoresDCalibracao = 4;
-int velocidadeMotoresD = 80 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
-int velocidadeMotoresE = 80;
-int velocidadeMotoresDMax = 110 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
-int velocidadeMotoresEMax = 110;
+int velocidadeMotoresD = 65 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
+int velocidadeMotoresE = 65;
+int velocidadeMotoresDMax = 95 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
+int velocidadeMotoresEMax = 95;
 int servoC = 90, servoD = 180, servoE = 0;
 
 Servo servo_ultra_sonico; // nomeando o servo motor
@@ -32,21 +36,39 @@ void setup() {
 
   Serial.begin(9600); // inicializa a comunicação serial para mostrar dados
 
+
+  pinMode(sensorD, INPUT);
+  pinMode(sensorE, INPUT);
+
   servo_ultra_sonico.attach(10);  // Define o mini servo motor ligado no pino digital 10.
   //pinMode(trigPin, OUTPUT); //define o pino TRIG como saída
   //pinMode(echoPin, INPUT);  //define o pino ECHO como entrada
 
-  motor1.setSpeed(velocidadeMotoresD);     // Define a velocidade para os motores. A velocidade máxima é 255.
-  motor2.setSpeed(velocidadeMotoresE);     //Usamos uma bateria de 9v 450mAh, com ela a velocidade ficou boa. Mas dependendo da bateria utilizada a velocidade deverá ser utilizada. Não use pilhas, pois são fracas
-
   parar();  //inica com os motores parados
 
-  servo_ultra_sonico.write(servoC);   // O servo do sensor se inicia a 90 graus (meio)
+  reposicionaServoSonar();   // O servo do sensor se inicia a 90 graus (meio)
+
+  for ( int i = 0; i < 3; i++) {
+
+    lerSonar();
+  }
 
 }
 
 // Função principal do Arduino
 void loop() {
+
+  //  Serial.print("Sensor Direito: ");
+  //  Serial.print(analogRead(sensorD));
+  //  Serial.print(" -- ");
+  //  Serial.print("Sensor Esquerdo: ");
+  //  Serial.println(analogRead(sensorE));
+
+  //  Serial.print("Sensor Direito: ");
+  //  Serial.print(digitalRead(sensorD));
+  //  Serial.print(" -- ");
+  //  Serial.print("Sensor Esquerdo: ");
+  //  Serial.println(digitalRead(sensorE));
 
   pensar(); //inicia a função pensar
 
@@ -66,10 +88,26 @@ void pensar() {
 
     if (distancia > 2000 or distancia < 1) {
 
-      Serial.println("Distancia Centro muito Proxima: " + distancia);
+      parar();
       re();
+      posicionaCarroMelhorCaminho();
+      pensar();
 
     } else {
+
+      int sd = digitalRead(sensorD);
+      int se = digitalRead(sensorE);
+
+      if (sd == LOW && se == HIGH) {
+        //reposicionar para esquerda
+        reposicionarEsquerda();
+
+      } else if (sd == HIGH && se == LOW) {
+
+        //reposicionar para direita
+        reposicionarDireita();
+
+      }
 
       frente(); //robô anda para frente
     }
@@ -141,6 +179,13 @@ int calcularDistanciaCentro() {
   Serial.print("Distancia do Centro: "); // Exibe no serial
   Serial.println(leituraDoSonar);
 
+  if (leituraDoSonar > 2000) {
+     
+     re();
+     leituraDoSonar = calcularDistanciaCentro();
+     
+  }
+
   return leituraDoSonar;       // Retorna a distância
 }
 
@@ -162,6 +207,14 @@ int calcularDistanciaDireita() {
   Serial.print("Distancia da Direita: ");
   Serial.println(leituraDoSonar);
 
+  if (leituraDoSonar > 2000) {
+
+     re();
+     esquerda();
+     leituraDoSonar = calcularDistanciaDireita();
+     
+  }
+
   return leituraDoSonar;
 }
 
@@ -180,8 +233,16 @@ int calcularDistanciaEsquerda() {
     delay(10);
   }
 
-  Serial.print("Distancia Esquerda: ");
+  Serial.print("Distancia da Esquerda: ");
   Serial.println(leituraDoSonar);
+
+  if (leituraDoSonar > 2000) {
+     
+     re();
+     direita();
+     leituraDoSonar = calcularDistanciaEsquerda();
+     
+  }
 
   return leituraDoSonar;
 }
@@ -213,12 +274,22 @@ char calculaMelhorDistancia() {
     melhorDistancia = 'e';
     maiorDistancia = esquerda;
 
+  } else {
+    
+    re();
+    calculaMelhorDistancia();
+    
+  }
+
+  if (centro > 2000 or direita > 2000 or esquerda > 2000) {
+      
+      re();
+      calculaMelhorDistancia();
   }
 
   if (maiorDistancia <= distanciaObstaculo) { //distância limite para parar o robô
 
     re();
-
     posicionaCarroMelhorCaminho();
 
   }
@@ -261,7 +332,7 @@ void posicionaCarroMelhorCaminho() {
 void reposicionaServoSonar() {
 
   servo_ultra_sonico.write(servoC);
-  delay(200);
+  delay(50);
 }
 
 // Função para fazer o carro parar
@@ -291,7 +362,7 @@ void frente() {
   motor1.setSpeed(velocidadeMotoresDMax);
   motor2.setSpeed(velocidadeMotoresEMax);
 
-  delay(10);
+  delay(5);
 
   motor1.run(BACKWARD); // Roda vai para frente
   motor2.run(BACKWARD);
@@ -301,107 +372,111 @@ void frente() {
   motor1.setSpeed(velocidadeMotoresD);
   motor2.setSpeed(velocidadeMotoresE);
 
-  delay(10);
+  delay(5);
 
   motor1.run(BACKWARD); // Roda vai para frente
   motor2.run(BACKWARD);
 
-  delay(10);
+  //delay(10);
 
 }
 
 void re() {
 
-
   Serial.println("Motor: ré ");
   motor1.setSpeed(velocidadeMotoresDMax);
   motor2.setSpeed(velocidadeMotoresEMax);
 
-  delay(10);
+  delay(5);
 
-  for (int i = 0; i <= 3; i++) {
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
 
-    motor1.run(FORWARD);
-    motor2.run(FORWARD);
-
-    delay(10);
-
-    motor1.setSpeed(velocidadeMotoresD);
-    motor2.setSpeed(velocidadeMotoresE);
-
-    delay(10);
-
-    motor1.run(FORWARD);
-    motor2.run(FORWARD);
-
-    delay(10);
-
-  }
+  delay(150);
 
   parar();
 
 }
 
 
-void direita() {
+void esquerda() {
 
-  Serial.println(" Para a direita ");
+   Serial.println("Motor: Esquerda");
 
-  //re();
+  re();
   //
   //  delay(100);
   motor1.setSpeed(velocidadeMotoresDMax);
   motor2.setSpeed(velocidadeMotoresEMax);
 
-  delay(10);
-
-  motor1.run(FORWARD);    //o robô dá uma ré para não colidir ao girar
-  motor2.run(FORWARD);
-
-  delay(20);
-
-  motor1.setSpeed(velocidadeMotoresD);
-  motor2.setSpeed(velocidadeMotoresE);
-
-  delay(10);
+  delay(5);
 
   motor1.run(BACKWARD); // Roda para trás
   motor2.run(FORWARD); // Roda vai para frente
 
   delay(tempoGirar);
 
-  //parar();
+  parar();
 
 }
 
 // Função que faz o robô virar à esquerda
-void esquerda() {
+void direita() {
 
-  Serial.println(" Para a esquerda ");
+   Serial.println("Motor: Direita ");
 
-  //re();
+  re();
 
   //  delay(100);
   motor1.setSpeed(velocidadeMotoresDMax);
   motor2.setSpeed(velocidadeMotoresEMax);
 
-  delay(10);
-
-  motor1.run(FORWARD);    // // O robô dá uma ré para não colidir ao girar
-  motor2.run(FORWARD);
-
-  delay(20);
-
-  motor1.setSpeed(velocidadeMotoresD);
-  motor2.setSpeed(velocidadeMotoresE);
-
-  delay(10);
+  delay(5);
 
   motor1.run(FORWARD); // Roda vai para frente
   motor2.run(BACKWARD); // Roda vai para trás
 
   delay(tempoGirar);
 
-  //parar();
+  parar();
+
+}
+
+void reposicionarEsquerda() {
+
+  Serial.println("Motor: Reposicionar para Esquerda");
+   re();
+  
+  motor1.setSpeed(velocidadeMotoresDMax);
+  motor2.setSpeed(velocidadeMotoresEMax);
+
+  delay(5);
+
+  motor1.run(BACKWARD); // Roda para trás
+  motor2.run(FORWARD); // Roda vai para frente
+
+  delay(50);
+
+  parar();
+
+}
+
+// Função que faz o robô virar à esquerda
+void reposicionarDireita() {
+
+  Serial.println("Motor: Reposicionar para Direita");
+  re();
+
+  motor1.setSpeed(velocidadeMotoresDMax);
+  motor2.setSpeed(velocidadeMotoresEMax);
+
+  delay(5);
+
+  motor1.run(FORWARD); // Roda vai para frente
+  motor2.run(BACKWARD); // Roda vai para trás
+
+  delay(50);
+
+  parar();
 
 }
