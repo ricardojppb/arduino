@@ -14,14 +14,14 @@
 AF_DCMotor motor1(1);
 AF_DCMotor motor2(2);
 
-int tempoGirar = 300;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
+int tempoGirar = 420;//esse é o tempo para o robô girar em 45º com uma bateria de 9v.
 int distanciaObstaculo = 17; //distância para o robô parar e recalcular o melhor caminho
 
 int velocidadeMotoresDCalibracao = 4;
-int velocidadeMotoresD = 65 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
-int velocidadeMotoresE = 65;
-int velocidadeMotoresDMax = 95 - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
-int velocidadeMotoresEMax = 95;
+int velocidadeMotoresD = 40;// - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
+int velocidadeMotoresE = 40;
+int velocidadeMotoresDMax = 70;// - velocidadeMotoresDCalibracao; // velocidade que os motores funcionarão na bateria 9v. Para a bateria 9v a velocidade 80 é ideal
+int velocidadeMotoresEMax = 70;
 int servoC = 90, servoD = 180, servoE = 0;
 
 Servo servo_ultra_sonico; // nomeando o servo motor
